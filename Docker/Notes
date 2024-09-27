@@ -1,0 +1,469 @@
+Note:
+******
+Ansible module will be completed after Docker & Kubernetes
+
+
+recap:
+
+Docker hub
+
+Docker Host
+
+systemctl start docker
+
+root level permission to work with docker
+
+Pull an Image and run it into a container
+
+Image Name: 
+
+registryName/reponame/Imagename:tagname
+
+
+docker pull imagename ==> pull the image from dockerhub, library , image and lastest tag
+
+docker pull imagename:tag  ==>pull the image from dockerhub, library , image and req tag
+
+
+docker run Imagename ==> pull the image form docker and run it --launch a container
+
+
+Agenda:
+***************
+
+Docker run reference
+
+Docker port mapping
+
+Docker Volumes
+
+
+
+Delete Container:
+
+docker rm -f <containername/id>
+
+Delete all container in the docker host
+
+docker rm -f $(docker ps -aq)
+
+*****************
+
+launch a container with a Mode:
+****************
+
+1. Foreground Mode : -it
+
+When a container run command is executed with Foreground Mode:
+
+ > Container will be up & running
+ > User will be logon to the container
+
+$ docker run --name c1 -it centos
+
+Comout of container
+
+ > ctl pq  ==> container will be running & you will out of the container
+
+ > exit  ==> container will be exited state & you will out of the container
+
+
+Attach to the container terminal again / go inside the container again
+
+$ docker attach containername/id
+
+Attach to a container when it is Stopped/exited
+
+> you cannot attach or logonto a Exited containter
+
+> you will have start the container again & then attach to it
+
+$ docker start containName/id
+
+
+
+2. Detached Mode : -d
+
+When a container run command is executed with Detached Mode:
+
+ > Container will be up & running
+ > User will not be attached to the container
+
+
+ $ docker run --name n1 -d nginx
+
+
+3. Access the container from browser of your machine:
+
+*** images of type Web server and app servers
+
+ Every image of type web, app, DB servers will have a port exposed to it
+
+using this port any user can access the container application
+
+
+Port mapping to be done with run command
+
+
+ -p systemport:containerport
+
+user will give a valid system port and mapp it to container port
+
+ docker run  -p 8989:80 imagname
+
+
+ - P
+
+ docker will automatically map the container port to system port
+
+ docker run -P imagename
+
+ docker will take free port on host machine and map it to contaienr port
+
+
+
+
+Docker Volumes:
+
+******************
+
+
+1. Named Volume 
+
+step1: we will create a volume of specific name
+
+docker volume create myvol
+
+> the volume always get created in docker area : /var/lib/docker/volumes
+
+> data will be preserved at : /var/lib/docker/volumes/myvol/_data
+
+Step2: map the volume with the directory of the container whose data has to be preserved
+
+docker run --name c1 -it -v myvol:/tmp centos
+
+Step3: check if data is preserved on the volume or not
+
+Data is being preserved in volume directory
+
+/var/lib/docker/volumes/myvol/_data
+
+
+2. Bind mounts Volume
+
+
+Is a type of volume in which any directory of the host machine can be mapped to the container directory
+
+
+docker run -v /hostdir/path:containerdir imagename
+
+
+if there a direcotry on hostmachine
+
+/home ==> config.xml
+
+i want this file to be availbe in my container 
+
+some dire : /var/www/html
+
+how cna we do it?
+
+
+  docker run -v /home/config.xml:/var/www/html imagename
+
+
+
+
+Depoy an ecomm application on a httpd image container
+
+
+ecomm app code: github
+
+I want to code to be on my docker host:
+
+ git clone 
+
+
+Copy the current directory files on the container directory
+
+
+ docker volume : bind mount
+
+ -v /pathdirectory:containerdir
+
+
+ -v root/ecomm:/usr/local/apache2/htdocs/
+
+
+Creating a docker file and building an image from it
+*******************************************************
+it is a simple txt file.
+
+# vim dockerfile
+	i
+
+FROM centos    // base image information
+MAINTAINER edureka
+RUN yum -y update            // these are commands that we give for building the image
+RUN yum install git -y		// information about packages that shoudl be 					there on the image
+VOLUME /data
+:wq!
+
+# docker build -t mycentos:git .
+
+When we run the image -->container will be created.
+
+	# docker images
+
+
+	# docker run --name c1 -it mycentos1:dockerfile
+	
+
+==> data folder which is mounted for volume wll be there
+
+	
+
+OTher instructions that we can give in an Image :
+FROM: 
+
+MAINTAINER:
+
+RUN:
+
+CMD:
+
+VOLUME:
+
+EXPOSE:
+
+ADD:
+
+**************************************************
+
+NGINX dockerfile deployment of html file
+
+FROM ubuntu
+RUN apt-get update -y
+RUN apt-get install nginx -y
+COPY index.html /var/www/html/
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+
+
+
+Deploy Job in Jenkins:
+**************************************
+Steps to create a Jenkins job and create docker file and create container for addressbook.war
+
+1. Start the jenkins on AWS instance
+
+# systemctl start jenkins
+
+2. Start docker 
+# systemctl start docker
+
+3. Log into jenkins --> go to package job --go to console and copy the path of .war file
+
+4. create a new job -->Deploy
+
+5. Go to build -->shell command
+
+rm -rf mydockerfile
+mkdir mydockerfile
+cd mydockerfile
+cp /var/lib/jenkins/workspace/Package/target/addressbook.war .
+touch dockerfile
+cat <<EOT>> dockerfile
+From tomcat:9
+ADD addressbook.war /usr/local/tomcat/webapps
+EXPOSE 8080
+CMD ["catalina.sh", "run"]
+EOT
+sudo docker build -t myimage:$BUILD_NUMBER .
+sudo docker run -itd -P myimage:$BUILD_NUMBER
+
+Save the job
+
+Go to instance to give jenkins permission to execute docker commands. As of now we are logged in as admin in jenkins and it doesnt have permission to run docker commands.
+
+So go to
+vim /etc/sudoers
+i
+add under root
+Jenkins ALL=NOPASSWD: ALL
+:wq!
+
+Go back to jenkins and build now.
+
+==> New image and container will be created
+
+# docker images
+
+# docker ps -a
+
+Access from browser
+
+http://18.221.206.57:32768/addressbook/
+
+******************************************************************************
+
+**************************************************
+
+
+
+
+mkdir demoCompose
+cd demoCompose
+
+vi docker-compose.yml
+
+version: '2'
+
+services:
+  compose-test:
+   image: centos:7
+   links:
+    - compose-db
+   command: sleep infinity
+  compose-db:
+   image: redis
+   expose:
+    - "6379"
+
+$ docker-compose up -d
+
+$ docker-compose ps
+
+$ docker-compose exec compose-test /bin/bash
+
+[OR]
+$ docker-compose exec compose-test sh
+
+# yum install -y nc
+# nc compose-db 6379
+# ping
+
+# set name Sonal
+
+# get name
+
+Ctrl+C
+
+# exit
+
+
+$ docker-compose down
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
